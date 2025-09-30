@@ -5,6 +5,7 @@
 1. **hardhat.config.js** - Fixed network configuration with proper types
 2. **scripts/deploy.js** - Updated to use working ethers import pattern
 3. **package.json** - Added deployment scripts
+Before deployment of smart contract, compile it using the command "npx hardhat compile"
 
 ## **How to Deploy:**
 
@@ -31,7 +32,7 @@ WALLET_PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
 
 2. **Deploy to Sepolia:**
 ```bash
-npm run deploy:sepolia
+npx hardhat run scripts/deploy.js --network sepolia
 ```
 
 ## **Available Scripts:**
