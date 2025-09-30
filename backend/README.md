@@ -1,9 +1,6 @@
-Backend - Blockchain Certificate Verification
+# Backend - Blockchain Certificate Verification
 
-Setup
-- Create `.env` based on the keys below:
-
-## Environment Variables (.env)
+## Setup
 
 Create a `.env` file in the `backend/` folder with the following variables:
 
@@ -40,16 +37,39 @@ CONTRACT_ABI_JSON_PATH=./abi/Certificate.json
 
 # Wallet private key (keep secret!)
 WALLET_PRIVATE_KEY=your_wallet_private_key_here
+```
+Ensure your .env is encoded with UTF8 only
 
+## Start the backend sever
+ ```bash
+npm install
+npm start
+```
 
-Start
-- npm install
-- npm start
+## API
+- Base URL
+```bash
+http://localhost:4000/api
+```
 
-API
-- Auth: POST /api/auth/signup, POST /api/auth/login, GET /api/auth/me
-- Cert: POST /api/cert/issue (issuer/admin), GET /api/cert/:certificateId, GET /api/cert/verify?token=...
-- Admin: GET /api/admin/users, PATCH /api/admin/users/:id/role
+- Auth Routes (/api/auth)
+  - POST /signup   -> register a new user
+  - POST /login  -> Login user and receive JWT token
+  - GET /me  -> Get current logged-in user info [Auth req]
+  - POST /request-access -> Request approval/access (issuer role) [Auth req]
+- Certificate Routes (/api/cert)
+  - POST /issue  -> Issue a new certificate [Auth req by issuer or admin]
+  - GET  /:certificateId -> Get certificate details by certificate ID [Auth req]
+  - GET  /verify -> Verify certificate by verification token
+  - GET /verify/by-id/:certificateId -> Verify certificate by certificate ID
+  - POST /verify/hash -> Verify certificate using certificate ID and hash
+  - POST /verify/qr -> Verify certificate using QR data
+  - GET /download/:certificateId  -> Download certificate PDF
+- Admin Routes (/api/admin)
+  - GET  /users  -> Get all users [Auth req by admin]
+  - PATCH  /users/:id/role -> Update user role [Auth req by admin]
+  - POST  /issuers/:id/approve  ->  Approve an issuer [Auth req by admin]
+  - POST  /issuers/:id/reject -> Reject an issuer [Auth req by admin]
 
 
 
