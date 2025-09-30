@@ -15,6 +15,7 @@ export default {
     },
     sepolia: {
       type: "http",
+      //Make sure .env contains CHAIN_RPC_URL, WALLET_PRIVATE_KEY
       url: process.env.CHAIN_RPC_URL || "https://sepolia.infura.io/v3/YOUR_INFURA_KEY",
       accounts: process.env.WALLET_PRIVATE_KEY ? [process.env.WALLET_PRIVATE_KEY] : []
     }
