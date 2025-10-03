@@ -1,0 +1,30 @@
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import useAuth from '../state/useAuth.js'
+
+export default function RootLayout(){
+  const { user, logout } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
+  return (
+    <div>
+      <nav className="nav">
+        <div className="brand">CertChain</div>
+        <div className="navlinks">
+          <Link to="/">Home</Link>
+          <Link to="/login" className={location.pathname==='/login'?'active':''}>Issuer Login</Link>
+          <Link to="/verify" className={location.pathname==='/verify'?'active':''}>Verify Certificate</Link>
+          {user && (
+            <>
+              <span>Welcome, {user.name}</span>
+              <button className="btn" onClick={()=>{ logout(); navigate('/')}}>Logout</button>
+            </>
+          )}
+        </div>
+      </nav>
+      <main className="container">
+        <Outlet />
+      </main>
+    </div>
+  )
+}
+
