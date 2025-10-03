@@ -1,5 +1,5 @@
 import express from 'express';
-import { z } from 'zod';
+import { z, ZodError} from 'zod';
 import crypto from 'crypto';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { USER_ROLES, User } from '../models/User.js';
@@ -17,7 +17,16 @@ const issueSchema = z.object({
   recipientName: z.string().min(2),
   recipientEmail: z.string().email().optional(),
   courseName: z.string().min(2),
-  issuedOn: z.preprocess((val) => (typeof val === 'string' || val instanceof Date ? new Date(val) : val), z.date()),
+  issuedOn: z.preprocess(
+    (val) => {
+      if (!val) return new Date(); // default to "now" if missing
+      if (typeof val === "string" || typeof val === "number") {
+        return new Date(val);
+      }
+      return val;
+    },
+    z.date()
+  ),
   metadata: z.record(z.any()).optional(),
 });
 
@@ -40,7 +49,9 @@ router.post('/issue', authenticate, authorize(USER_ROLES.ISSUER, USER_ROLES.ADMI
         issuedOn: input.issuedOn,
         metadata: input.metadata || {},
       });
-    } catch {}
+    } catch(e) {
+      console.error("IPFS pin failed:", e.message);
+    }
 
     const cert = await Certificate.create({
       ...input,
@@ -89,20 +100,15 @@ router.post('/issue', authenticate, authorize(USER_ROLES.ISSUER, USER_ROLES.ADMI
       blockchainTxHash: txHash
     });
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid input', issues: err.issues });
-    next(err);
+    if (err instanceof ZodError) {
+        console.error("Validation error:", err.issues);
+        return res.status(400).json({ message: 'Invalid input', issues: err.issues });
+      }
+      next(err);
   }
 });
 
-router.get('/:certificateId', authenticate, async (req, res, next) => {
-  try {
-    const cert = await Certificate.findOne({ certificateId: req.params.certificateId }).populate('issuer', 'name email organization role');
-    if (!cert) return res.status(404).json({ message: 'Not found' });
-    res.json({ certificate: cert });
-  } catch (err) {
-    next(err);
-  }
-});
+
 
 router.get('/verify', async (req, res, next) => {
   try {
@@ -196,7 +202,18 @@ router.post('/verify/qr', async (req, res, next) => {
     next(err);
   }
 });
-
+router.get('/:certificateId', authenticate, async (req, res, next) => {
+  try {
+    const cert = await Certificate.findOne({ certificateId: req.params.certificateId }).populate('issuer', 'name email organization role');
+    if (!cert) return res.status(404).json({ message: 'Not found' });
+    const baseUrl = process.env.APP_BASE_URL || 'http://localhost:4000';
+    const verifyUrl = `${baseUrl}/api/cert/verify?token=${cert.verificationToken}`;
+    const qr = await generateCertificateQr(cert, cert.verificationToken, baseUrl);
+    res.json({ certificate: cert, qr, verifyUrl });
+  } catch (err) {
+    next(err);
+  }
+});
 router.get('/download/:certificateId', async (req, res, next) => {
   try {
     const cert = await Certificate.findOne({ certificateId: req.params.certificateId }).populate('issuer', 'name organization');

@@ -58,6 +58,17 @@ router.post('/issuers/:id/reject', async (req, res, next) => {
   }
 });
 
+router.delete('/users/:id', async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id).select('-passwordHash');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: 'User deleted successfully', user });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
 export default router;
 
 
