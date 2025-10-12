@@ -9,6 +9,7 @@ import SignupPage from './routes/SignupPage.jsx'
 import DashboardPage from './routes/DashboardPage.jsx'
 import VerifyPage from './routes/VerifyPage.jsx'
 import AdminPage from './routes/AdminPage.jsx'
+import IssuerCertificatesPage from './routes/IssuerCertificatesPage.jsx'
 
 const router = createBrowserRouter([
   {
@@ -21,6 +22,7 @@ const router = createBrowserRouter([
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'verify', element: <VerifyPage /> },
       { path: 'admin', element: <AdminPage /> },
+      { path: 'issuer-certificates', element: <IssuerCertificatesPage /> },
     ],
   },
 ])
