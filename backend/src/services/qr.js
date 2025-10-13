@@ -6,21 +6,13 @@ export async function generateQrDataUrl(data) {
 }
 
 export async function generateCertificateQr(certificateData, verificationToken, baseUrl) {
+  // Create a direct URL that any QR scanner can access
   const verifyUrl = `${baseUrl}/api/cert/verify?token=${verificationToken}`;
   
-  // Enhanced QR data with hash information
-  const qrData = {
-    type: 'certificate',
-    certificateId: certificateData.certificateId,
-    recipientName: certificateData.recipientName,
-    courseName: certificateData.courseName,
-    issuedOn: certificateData.issuedOn,
-    hash: certificateData.metadata?.ipfs?.cid || null,
-    verifyUrl: verifyUrl,
-    timestamp: Date.now()
-  };
+  console.log('🔗 Generated verification URL:', verifyUrl);
   
-  return QRCode.toDataURL(JSON.stringify(qrData), { 
+  // Generate QR code with direct URL for universal scanner compatibility
+  return QRCode.toDataURL(verifyUrl, { 
     errorCorrectionLevel: 'H', 
     margin: 2, 
     width: 400 

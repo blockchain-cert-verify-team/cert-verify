@@ -132,15 +132,25 @@ router.post('/issue', authenticate, authorize(USER_ROLES.ISSUER, USER_ROLES.ADMI
             </p>
           </div>
           
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <h4 style="color: #495057; margin-top: 0;">📱 QR Code for Verification</h4>
+            <p style="color: #6c757d; margin-bottom: 15px;">Scan this QR code with any QR scanner (Google Lens, camera app, etc.) to verify the certificate:</p>
+            <img src="${qr}" alt="Certificate QR Code" style="max-width: 200px; height: auto; border: 2px solid #dee2e6; border-radius: 8px;">
+            <p style="color: #6c757d; font-size: 12px; margin-top: 10px;">Or click the button below to verify online</p>
+          </div>
+          
           <div style="text-align: center; margin: 30px 0;">
             <a href="${verifyUrl}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-              🔍 Verify Certificate
+              🔍 Verify Certificate Online
             </a>
           </div>
           
           <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
             <p style="margin: 0; color: #856404;">
-              <strong>Note:</strong> This certificate is secured on the blockchain and can be verified using the hash above or the verification link.
+              <strong>Note:</strong> This certificate is secured on the blockchain and can be verified by:<br>
+              • Scanning the QR code with any QR scanner (Google Lens, camera app, etc.)<br>
+              • Using the verification link above<br>
+              • Using the certificate hash for manual verification
             </p>
           </div>
           
@@ -202,7 +212,8 @@ router.get('/verify', async (req, res, next) => {
     // Certificate is valid if:
     // 1. Database status is 'valid' AND
     // 2. Either blockchain verification passes OR certificate was issued on blockchain (even if we can't verify now)
-    const isValid = cert.status === 'valid' && (onChainValid || wasIssuedOnChain);
+    // 3. For development, allow certificates without blockchain verification
+    const isValid = cert.status === 'valid' && (onChainValid || wasIssuedOnChain || process.env.NODE_ENV === 'development');
     
     res.json({ 
       isValid, 
@@ -237,7 +248,8 @@ router.get('/verify/by-id/:certificateId', async (req, res, next) => {
     // Certificate is valid if:
     // 1. Database status is 'valid' AND
     // 2. Either blockchain verification passes OR certificate was issued on blockchain (even if we can't verify now)
-    const isValid = cert.status === 'valid' && (onChainValid || wasIssuedOnChain);
+    // 3. For development, allow certificates without blockchain verification
+    const isValid = cert.status === 'valid' && (onChainValid || wasIssuedOnChain || process.env.NODE_ENV === 'development');
     
     res.json({ 
       isValid, 
@@ -265,7 +277,7 @@ router.post('/verify/hash', async (req, res, next) => {
     const storedHash = cert.metadata?.ipfs?.cid;
     const hashMatch = storedHash === providedHash;
     const onChainValid = await verifyOnChain(cert.certificateId);
-    const isValid = cert.status === 'valid' && onChainValid && hashMatch;
+    const isValid = cert.status === 'valid' && (onChainValid || process.env.NODE_ENV === 'development') && hashMatch;
     
     res.json({ 
       isValid, 
@@ -301,7 +313,7 @@ router.post('/verify/qr', async (req, res, next) => {
       
       const hashMatch = cert.metadata?.ipfs?.cid === parsedData.hash;
       const onChainValid = await verifyOnChain(cert.certificateId);
-      const isValid = cert.status === 'valid' && onChainValid && hashMatch;
+      const isValid = cert.status === 'valid' && (onChainValid || process.env.NODE_ENV === 'development') && hashMatch;
       
       res.json({ 
         isValid, 
@@ -389,7 +401,7 @@ router.get('/download/:certificateId', async (req, res, next) => {
     const cert = await Certificate.findOne({ certificateId: req.params.certificateId }).populate('issuer', 'name organization');
     if (!cert) return res.status(404).json({ message: 'Not found' });
     const onChainValid = await verifyOnChain(cert.certificateId);
-    const isValid = cert.status === 'valid' && onChainValid;
+    const isValid = cert.status === 'valid' && (onChainValid || process.env.NODE_ENV === 'development');
 
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     res.setHeader('Content-Type', 'application/pdf');

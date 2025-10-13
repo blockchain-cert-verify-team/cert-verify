@@ -10,7 +10,10 @@
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
     "deploy:localhost": "hardhat run scripts/deploy.js --network localhost",
     "node": "hardhat node",
-    "clean": "hardhat clean"
+    "clean": "hardhat clean",
+    "setup-mobile": "node setup-mobile-access.js",
+    "get-ip": "node get-local-ip.js",
+    "test-mobile": "node test-mobile-setup.js"
   },
   "keywords": [],
   "author": "",

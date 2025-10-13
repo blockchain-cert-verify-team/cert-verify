@@ -2,19 +2,19 @@ import { ethers } from 'ethers';
 import fs from 'fs';
 
 export function getContract() {
-  const rpcUrl = process.env.CHAIN_RPC_URL || 'http://127.0.0.1:8545';
+  const rpcUrl = process.env.CHAIN_RPC_URL || 'https://sepolia.infura.io/v3/77500932fa5142a88b06de9ac9a9c8c1';
   const contractAddress = process.env.CONTRACT_ADDRESS || '0x5FbDB2315678afecb367f032d93F642f64180aa3';
   const abiPath = process.env.CONTRACT_ABI_JSON_PATH || './abi/Certificate.json';
   
   try {
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     const abi = JSON.parse(fs.readFileSync(abiPath, 'utf-8')).abi || JSON.parse(fs.readFileSync(abiPath, 'utf-8'));
-    console.log('Connecting to blockchain:', rpcUrl);
-    console.log('Contract address:', contractAddress);
+    console.log('🔗 Connecting to blockchain:', rpcUrl);
+    console.log('📄 Contract address:', contractAddress);
     return new ethers.Contract(contractAddress, abi, provider);
   } catch (error) {
-    console.warn('Blockchain configuration issue:', error.message);
-    console.warn('Using fallback configuration for development');
+    console.warn('⚠️ Blockchain configuration issue:', error.message);
+    console.warn('🔄 Using fallback configuration for development');
     // Return a mock contract for development
     return null;
   }

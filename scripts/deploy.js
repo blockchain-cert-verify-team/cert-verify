@@ -8,11 +8,23 @@ async function main() {
   const contractArtifact = await hre.artifacts.readArtifact("CertificateRegistryOptimized");
   console.log("Contract artifact loaded successfully");
   
-  // Create a provider for the network
-  const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+  // Get network configuration
+  const networkName = hre.network.name;
+  let rpcUrl, privateKey;
   
-  // Create a wallet with the first hardhat account
-  const wallet = new ethers.Wallet("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", provider);
+  if (networkName === 'sepolia') {
+    rpcUrl = process.env.CHAIN_RPC_URL || 'https://sepolia.infura.io/v3/77500932fa5142a88b06de9ac9a9c8c1';
+    privateKey = process.env.WALLET_PRIVATE_KEY;
+  } else {
+    rpcUrl = 'http://127.0.0.1:8545';
+    privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+  }
+  
+  // Create a provider for the network
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  
+  // Create a wallet with the configured private key
+  const wallet = new ethers.Wallet(privateKey, provider);
   
   console.log("Deploying with account:", wallet.address);
   

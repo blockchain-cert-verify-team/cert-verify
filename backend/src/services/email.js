@@ -6,8 +6,9 @@ export function getTransporter() {
   if (transporter) return transporter;
   
   console.log('🔍 Email configuration check:');
-  console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'SET' : 'NOT SET');
-  console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'SET' : 'NOT SET');
+  console.log('SMTP_HOST:', process.env.SMTP_HOST ? 'SET' : 'NOT SET');
+  console.log('SMTP_USER:', process.env.SMTP_USER ? 'SET' : 'NOT SET');
+  console.log('SMTP_PASS:', process.env.SMTP_PASS ? 'SET' : 'NOT SET');
   console.log('NODE_ENV:', process.env.NODE_ENV);
   
   // Try to use Gmail SMTP for actual email sending
@@ -16,33 +17,16 @@ export function getTransporter() {
     port: 587,
     secure: false,
     auth: {
-      user: process.env.EMAIL_USER || 'your-email@gmail.com',
-      pass: process.env.EMAIL_PASS || 'your-app-password'
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
     }
   };
-  
-  // For development, try to send real emails if configured
+
+  // For development, try to send real emails
   if (process.env.NODE_ENV === 'development') {
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      console.log('📧 Using Gmail SMTP for email sending');
-      transporter = nodemailer.createTransporter(smtpConfig);
-      return transporter;
-    } else {
-      // Fallback to console logging if no email config
-      console.log('⚠️ No email configuration found. Using console logging.');
-      transporter = {
-        sendMail: async (mailOptions) => {
-          console.log('📧 EMAIL WOULD BE SENT:');
-          console.log('From:', mailOptions.from);
-          console.log('To:', mailOptions.to);
-          console.log('Subject:', mailOptions.subject);
-          console.log('HTML Content:', mailOptions.html);
-          console.log('---');
-          return { messageId: 'test-' + Date.now() };
-        }
-      };
-      return transporter;
-    }
+    console.log('📧 Using Gmail SMTP for email sending');
+    transporter = nodemailer.createTransport(smtpConfig);
+    return transporter;
   }
   
   // For production, use real SMTP
@@ -67,7 +51,7 @@ export function getTransporter() {
     return transporter;
   }
   
-  transporter = nodemailer.createTransporter({ 
+  transporter = nodemailer.createTransport({ 
     host, 
     port, 
     secure: port === 465, 
@@ -78,12 +62,13 @@ export function getTransporter() {
 
 export async function sendCertificateEmail(toEmail, subject, html) {
   try {
-    const from = process.env.EMAIL_FROM || 'no-reply@certverify.com';
+    const from = process.env.EMAIL_FROM || 'CertVerify System <nashtychitti@gmail.com>';
     const tx = await getTransporter().sendMail({ from, to: toEmail, subject, html });
     console.log('✅ Email sent successfully:', tx.messageId);
     return tx;
   } catch (error) {
     console.error('❌ Email sending failed:', error.message);
+    console.error('Full error:', error);
     throw error;
   }
 }
