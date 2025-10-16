@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema(
       default: USER_ROLES.VERIFIER 
     },
     organization: { type: String },
+    walletAddress: { type: String, unique: true, sparse: true }, // Optional wallet address
     approvalStatus: { 
       type: String, 
       enum: ['none', 'pending', 'approved', 'rejected'], 

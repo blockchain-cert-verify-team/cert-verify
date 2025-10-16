@@ -1,17 +1,26 @@
 import { ethers } from 'ethers';
 import fs from 'fs';
 
+// Sepolia network configuration
+function getNetworkConfig() {
+  return {
+    rpcUrl: process.env.CHAIN_RPC_URL || 'https://sepolia.infura.io/v3/77500932fa5142a88b06de9ac9a9c8c1',
+    contractAddress: process.env.CONTRACT_ADDRESS || '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+    privateKey: process.env.WALLET_PRIVATE_KEY
+  };
+}
+
 export function getContract() {
-  const rpcUrl = process.env.CHAIN_RPC_URL || 'https://sepolia.infura.io/v3/77500932fa5142a88b06de9ac9a9c8c1';
-  const contractAddress = process.env.CONTRACT_ADDRESS || '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+  const config = getNetworkConfig();
   const abiPath = process.env.CONTRACT_ABI_JSON_PATH || './abi/Certificate.json';
   
   try {
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const provider = new ethers.JsonRpcProvider(config.rpcUrl);
     const abi = JSON.parse(fs.readFileSync(abiPath, 'utf-8')).abi || JSON.parse(fs.readFileSync(abiPath, 'utf-8'));
-    console.log('🔗 Connecting to blockchain:', rpcUrl);
-    console.log('📄 Contract address:', contractAddress);
-    return new ethers.Contract(contractAddress, abi, provider);
+    console.log('🔗 Connecting to Sepolia testnet:', config.rpcUrl);
+    console.log('📄 Contract address:', config.contractAddress);
+    console.log('🌐 Network: Sepolia Testnet');
+    return new ethers.Contract(config.contractAddress, abi, provider);
   } catch (error) {
     console.warn('⚠️ Blockchain configuration issue:', error.message);
     console.warn('🔄 Using fallback configuration for development');
@@ -79,27 +88,45 @@ export async function getCertificateHashOnChain(certificateId) {
 }
 
 function getSignerContract() {
-  const rpcUrl = process.env.CHAIN_RPC_URL;
-  const privateKey = process.env.WALLET_PRIVATE_KEY;
-  if (!rpcUrl || !privateKey) throw new Error('Missing signer configuration');
-  const provider = new ethers.JsonRpcProvider(rpcUrl);
-  const wallet = new ethers.Wallet(privateKey, provider);
-  const abiPath = process.env.CONTRACT_ABI_JSON_PATH;
-  const contractAddress = process.env.CONTRACT_ADDRESS;
+  const config = getNetworkConfig();
+  if (!config.rpcUrl || !config.privateKey) throw new Error('Missing signer configuration');
+  const provider = new ethers.JsonRpcProvider(config.rpcUrl);
+  const wallet = new ethers.Wallet(config.privateKey, provider);
+  const abiPath = process.env.CONTRACT_ABI_JSON_PATH || './abi/Certificate.json';
   const abi = JSON.parse(fs.readFileSync(abiPath, 'utf-8')).abi || JSON.parse(fs.readFileSync(abiPath, 'utf-8'));
-  return new ethers.Contract(contractAddress, abi, wallet);
+  return new ethers.Contract(config.contractAddress, abi, wallet);
 }
 
 // Issue certificate on blockchain
 export async function issueOnChain(holderName, courseName, validUntil, ipfsHash) {
   try {
     const contract = getSignerContract();
+    
+    // Debug: Log the exact parameters being sent
+    console.log('🔍 Smart contract call parameters:');
+    console.log('  holderName:', holderName);
+    console.log('  courseName:', courseName);
+    console.log('  validUntil:', validUntil);
+    console.log('  ipfsHash:', ipfsHash);
+    console.log('  ipfsHash length:', ipfsHash ? ipfsHash.length : 0);
+    
     // Use the correct function signature from your contract
     const tx = await contract.issueCertificate(holderName, courseName, validUntil, ipfsHash);
+    console.log('✅ Transaction sent successfully:', tx.hash);
     const receipt = await tx.wait();
-    return receipt?.hash || tx.hash;
+    console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
+    console.log('⛽ Gas used:', receipt.gasUsed.toString());
+    
+    return {
+      hash: receipt?.hash || tx.hash,
+      blockNumber: receipt.blockNumber,
+      gasUsed: receipt.gasUsed.toString()
+    };
   } catch (e) {
-    console.error('Issue certificate error:', e.message);
+    console.error('❌ Issue certificate error:', e.message);
+    console.error('Error code:', e.code);
+    console.error('Error data:', e.data);
+    console.error('Full error:', e);
     return null;
   }
 }

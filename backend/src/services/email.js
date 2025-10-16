@@ -6,9 +6,8 @@ export function getTransporter() {
   if (transporter) return transporter;
   
   console.log('🔍 Email configuration check:');
-  console.log('SMTP_HOST:', process.env.SMTP_HOST ? 'SET' : 'NOT SET');
-  console.log('SMTP_USER:', process.env.SMTP_USER ? 'SET' : 'NOT SET');
-  console.log('SMTP_PASS:', process.env.SMTP_PASS ? 'SET' : 'NOT SET');
+  console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'SET' : 'NOT SET');
+  console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'SET' : 'NOT SET');
   console.log('NODE_ENV:', process.env.NODE_ENV);
   
   // Try to use Gmail SMTP for actual email sending
@@ -22,7 +21,7 @@ export function getTransporter() {
     }
   };
 
-  // For development, try to send real emails
+  // For development, use Gmail SMTP
   if (process.env.NODE_ENV === 'development') {
     console.log('📧 Using Gmail SMTP for email sending');
     transporter = nodemailer.createTransport(smtpConfig);

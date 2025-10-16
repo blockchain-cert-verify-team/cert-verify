@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import useAuth from '../state/useAuth.js'
+import WalletConnection from '../components/WalletConnection.jsx'
 
 export default function RootLayout(){
   const { user, logout } = useAuth()
@@ -22,6 +23,9 @@ export default function RootLayout(){
               <button className="btn" onClick={()=>{ logout(); navigate('/')}}>Logout</button>
             </>
           )}
+          <div className="wallet-section">
+            <WalletConnection />
+          </div>
         </div>
       </nav>
       <main className="container">

@@ -6,14 +6,16 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "compile": "hardhat compile",
-    "deploy": "hardhat run scripts/deploy.js",
-    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
-    "deploy:localhost": "hardhat run scripts/deploy.js --network localhost",
-    "node": "hardhat node",
+    "deploy": "hardhat run scripts/deploy.js --network sepolia",
     "clean": "hardhat clean",
     "setup-mobile": "node setup-mobile-access.js",
     "get-ip": "node get-local-ip.js",
-    "test-mobile": "node test-mobile-setup.js"
+    "test-mobile": "node test-mobile-setup.js",
+    "test:sepolia": "node test-sepolia.js",
+    "setup:sepolia": "node setup-sepolia.js",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run dev",
+    "start:all": "npm run deploy && npm run start:backend && npm run start:frontend"
   },
   "keywords": [],
   "author": "",

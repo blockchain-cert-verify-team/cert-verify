@@ -25,7 +25,7 @@ export default function AdminPage(){
   async function fetchUsers(){
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:4000/api/admin/users', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/admin/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -46,7 +46,7 @@ export default function AdminPage(){
 
   async function approveUser(userId){
     try {
-      const response = await fetch(`http://localhost:4000/api/admin/issuers/${userId}/approve`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/admin/issuers/${userId}/approve`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -66,7 +66,7 @@ export default function AdminPage(){
 
   async function rejectUser(userId){
     try {
-      const response = await fetch(`http://localhost:4000/api/admin/issuers/${userId}/reject`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/admin/issuers/${userId}/reject`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

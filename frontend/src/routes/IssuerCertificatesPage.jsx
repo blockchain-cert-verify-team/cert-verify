@@ -29,7 +29,7 @@ export default function IssuerCertificatesPage() {
   async function fetchCertificates() {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:4000/api/cert/issuer-certificates', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/cert/issuer-certificates`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -51,7 +51,7 @@ export default function IssuerCertificatesPage() {
   async function revokeCertificate(certificateId, reason) {
     try {
       setRevoking(certificateId)
-      const response = await fetch(`http://localhost:4000/api/cert/revoke/${certificateId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/cert/revoke/${certificateId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,6 +1,8 @@
 import express from 'express';
 import { z, ZodError} from 'zod';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { USER_ROLES, User } from '../models/User.js';
 import { Certificate } from '../models/Certificate.js';
@@ -66,6 +68,11 @@ router.post('/issue', authenticate, authorize(USER_ROLES.ISSUER, USER_ROLES.ADMI
     if (req.currentUser.role === USER_ROLES.ISSUER && req.currentUser.approvalStatus !== 'approved') {
       return res.status(403).json({ message: 'Issuer not approved' });
     }
+    
+    // Check if user has linked a wallet (optional for now, but recommended)
+    if (!req.currentUser.walletAddress) {
+      console.log('⚠️ User issuing certificate without linked wallet address');
+    }
     const input = issueSchema.parse(req.body);
     const verificationToken = crypto.randomUUID();
     const exists = await Certificate.findOne({ certificateId: input.certificateId });
@@ -92,10 +99,34 @@ router.post('/issue', authenticate, authorize(USER_ROLES.ISSUER, USER_ROLES.ADMI
     });
 
     // Record on chain (optional). Store tx hash if success
-    const txHash = await issueOnChain(input.recipientName, input.courseName, input.validUntil || 0, pinned.cid || '');
-    if (txHash) {
-      cert.blockchainTxHash = txHash;
+    let blockchainResult = null;
+    
+    // Check if MetaMask is being used (frontend handles blockchain)
+    if (input.useMetaMask && input.blockchainTxHash) {
+      console.log('🦊 Using MetaMask transaction hash from frontend:', input.blockchainTxHash);
+      cert.blockchainTxHash = input.blockchainTxHash;
+      // Note: Block number and gas used not available from frontend MetaMask
       await cert.save();
+    } else {
+      // Backend handles blockchain transaction
+      const validUntilTimestamp = input.validUntil ? Math.floor(new Date(input.validUntil).getTime() / 1000) : 0;
+      
+      // Debug: Log the parameters being sent to blockchain
+      console.log('🔍 Blockchain call parameters:');
+      console.log('  Recipient Name:', input.recipientName);
+      console.log('  Course Name:', input.courseName);
+      console.log('  Valid Until (timestamp):', validUntilTimestamp);
+      console.log('  Valid Until (date):', input.validUntil ? new Date(input.validUntil).toISOString() : 'N/A');
+      console.log('  IPFS Hash:', pinned.cid || 'EMPTY');
+      console.log('  IPFS Pinning Success:', !!pinned.cid);
+      
+      blockchainResult = await issueOnChain(input.recipientName, input.courseName, validUntilTimestamp, pinned.cid || '');
+      if (blockchainResult) {
+        cert.blockchainTxHash = blockchainResult.hash;
+        cert.blockchainBlockNumber = blockchainResult.blockNumber;
+        cert.blockchainGasUsed = blockchainResult.gasUsed;
+        await cert.save();
+      }
     }
 
     const baseUrl = process.env.APP_BASE_URL || 'http://localhost:4000';
@@ -176,7 +207,9 @@ router.post('/issue', authenticate, authorize(USER_ROLES.ISSUER, USER_ROLES.ADMI
       verifyUrl, 
       studentHash,
       ipfsHash: pinned.cid,
-      blockchainTxHash: txHash
+      blockchainTxHash: blockchainResult?.hash,
+      blockchainBlockNumber: blockchainResult?.blockNumber,
+      blockchainGasUsed: blockchainResult?.gasUsed
     });
   } catch (err) {
     if (err instanceof ZodError) {
@@ -419,6 +452,101 @@ router.get('/download/:certificateId', async (req, res, next) => {
     doc.end();
   } catch (err) {
     next(err);
+  }
+});
+
+// Get contract ABI for frontend
+router.get('/contract/abi', async (req, res, next) => {
+  try {
+    const abiPath = './abi/Certificate.json';
+    const abi = JSON.parse(fs.readFileSync(abiPath, 'utf-8')).abi || JSON.parse(fs.readFileSync(abiPath, 'utf-8'));
+    res.json(abi);
+  } catch (error) {
+    console.error('Error loading contract ABI:', error);
+    res.status(500).json({ message: 'Failed to load contract ABI' });
+  }
+});
+
+// Link wallet address to user account
+router.post('/link-wallet', authenticate, async (req, res, next) => {
+  try {
+    const { walletAddress } = req.body;
+    
+    if (!walletAddress) {
+      return res.status(400).json({ message: 'Wallet address is required' });
+    }
+    
+    // Validate wallet address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+      return res.status(400).json({ message: 'Invalid wallet address format' });
+    }
+    
+    // Check if wallet is already linked to another user
+    const existingUser = await User.findOne({ walletAddress });
+    if (existingUser && existingUser._id.toString() !== req.user.id) {
+      return res.status(400).json({ message: 'Wallet address is already linked to another account' });
+    }
+    
+    // Update user with wallet address
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { walletAddress },
+      { new: true }
+    );
+    
+    res.json({ 
+      message: 'Wallet linked successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        walletAddress: user.walletAddress
+      }
+    });
+  } catch (error) {
+    console.error('Error linking wallet:', error);
+    res.status(500).json({ message: 'Failed to link wallet' });
+  }
+});
+
+// Unlink wallet address from user account
+router.delete('/unlink-wallet', authenticate, async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $unset: { walletAddress: 1 } },
+      { new: true }
+    );
+    
+    res.json({ 
+      message: 'Wallet unlinked successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        walletAddress: user.walletAddress
+      }
+    });
+  } catch (error) {
+    console.error('Error unlinking wallet:', error);
+    res.status(500).json({ message: 'Failed to unlink wallet' });
+  }
+});
+
+// Get user's wallet status
+router.get('/wallet-status', authenticate, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    res.json({
+      hasWallet: !!user.walletAddress,
+      walletAddress: user.walletAddress,
+      canIssue: user.canIssue()
+    });
+  } catch (error) {
+    console.error('Error getting wallet status:', error);
+    res.status(500).json({ message: 'Failed to get wallet status' });
   }
 });
 

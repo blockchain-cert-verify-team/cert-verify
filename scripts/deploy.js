@@ -8,16 +8,12 @@ async function main() {
   const contractArtifact = await hre.artifacts.readArtifact("CertificateRegistryOptimized");
   console.log("Contract artifact loaded successfully");
   
-  // Get network configuration
-  const networkName = hre.network.name;
-  let rpcUrl, privateKey;
+  // Sepolia network configuration
+  const rpcUrl = process.env.CHAIN_RPC_URL || 'https://sepolia.infura.io/v3/77500932fa5142a88b06de9ac9a9c8c1';
+  const privateKey = process.env.WALLET_PRIVATE_KEY;
   
-  if (networkName === 'sepolia') {
-    rpcUrl = process.env.CHAIN_RPC_URL || 'https://sepolia.infura.io/v3/77500932fa5142a88b06de9ac9a9c8c1';
-    privateKey = process.env.WALLET_PRIVATE_KEY;
-  } else {
-    rpcUrl = 'http://127.0.0.1:8545';
-    privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+  if (!privateKey) {
+    throw new Error('WALLET_PRIVATE_KEY not set in environment variables. Please set your Sepolia private key.');
   }
   
   // Create a provider for the network
@@ -45,9 +41,15 @@ async function main() {
   
   // Save deployment info
   console.log("\n=== Deployment Summary ===");
-  console.log("Network:", hre.network.name);
+  console.log("Network: Sepolia Testnet");
   console.log("Contract Address:", contractAddress);
+  console.log("RPC URL:", rpcUrl);
   console.log("Deployment successful!");
+  
+  console.log("\n📋 Next Steps:");
+  console.log("1. Update your .env file with the contract address");
+  console.log("2. Start the backend: cd backend && npm start");
+  console.log("3. Start the frontend: cd frontend && npm run dev");
 }
 
 main().catch((error) => {

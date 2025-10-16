@@ -11,6 +11,8 @@ const certificateSchema = new mongoose.Schema(
     issuer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     metadata: { type: Object },
     blockchainTxHash: { type: String },
+    blockchainBlockNumber: { type: Number },
+    blockchainGasUsed: { type: String },
     blockchainRevokeTxHash: { type: String },
     status: { type: String, enum: ['valid', 'revoked'], default: 'valid' },
     revokeReason: { type: String },
