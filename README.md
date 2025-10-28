@@ -1,57 +1,120 @@
-# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
+# CertVerify - Blockchain Certificate Verification
 
-This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
+Monorepo with `backend/` (Node/Express/MongoDB) and `frontend/` (React + Vite) to issue and verify certificates on Ethereum Sepolia with IPFS and QR/email delivery.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+## Features
 
-## Project Overview
+- Blockchain (Sepolia) issuance and on-chain verification
+- IPFS (Pinata) metadata pinning
+- QR codes that open the frontend verify page on any scanner
+- Email delivery with embedded QR and verify button
+- MetaMask support and role-based admin/issuer workflow
 
-This example project includes:
+## Repo structure
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+- `backend/` API, auth, certificate issuance/verification, email, IPFS
+- `frontend/` SPA with dashboard, issuing and verification UI
+- `contracts/` Solidity and Hardhat config/scripts
 
-## Usage
+## Requirements
 
-### Running Tests
+- Node.js 18+
+- MongoDB (Atlas or local)
+- MetaMask wallet + Sepolia ETH
+- Pinata API keys
+- SMTP or Gmail App Password
 
-To run all the tests in the project, execute the following command:
+## Install
 
-```shell
-npx hardhat test
+```bash
+npm install
+cd backend && npm install
+cd ../frontend && npm install
 ```
 
-You can also selectively run the Solidity or `node:test` tests:
+## Backend env (`backend/.env`)
 
-```shell
-npx hardhat test solidity
-npx hardhat test nodejs
+```env
+PORT=4000
+NODE_ENV=development
+
+# MongoDB
+MONGODB_URI=your_mongodb_connection_string
+
+# JWT
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=7d
+
+# App URLs
+# IMPORTANT: QR and emails use this URL to open the verify page
+FRONTEND_ORIGIN=http://localhost:5173
+APP_BASE_URL=http://localhost:4000
+
+# Email (choose ONE setup)
+# Development with Gmail (requires App Password)
+EMAIL_USER=your_gmail@gmail.com
+EMAIL_PASS=your_gmail_app_password
+EMAIL_FROM=CertVerify System <your_gmail@gmail.com>
+
+# OR Production SMTP
+# SMTP_HOST=smtp.example.com
+# SMTP_PORT=587
+# SMTP_USER=your_user
+# SMTP_PASS=your_pass
+# EMAIL_FROM=no-reply@example.com
+
+# IPFS (Pinata)
+PINATA_API_KEY=your_pinata_api_key
+PINATA_SECRET_API_KEY=your_pinata_secret_key
+
+# Blockchain (Sepolia)
+CHAIN_RPC_URL=https://sepolia.infura.io/v3/your_infura_key
+CONTRACT_ADDRESS=0xYourContractAddress
+WALLET_PRIVATE_KEY=your_private_key
 ```
 
-### Make a deployment to Sepolia
+## Run
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+```bash
+# Start both
+npm run start:all
 
-To run the deployment to a local chain:
-
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
+# Or separately
+npm run start:backend    # http://localhost:4000
+npm run start:frontend   # http://localhost:5173
 ```
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+## Contract deploy (optional)
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
-
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
-
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+```bash
+npm run deploy
 ```
 
-After setting the variable, you can run the deployment with the Sepolia network:
+## Verification flow
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+- When a certificate is issued, the email includes a QR and a button.
+- The QR encodes `FRONTEND_ORIGIN/verify?token=...` so any scanner opens the web page.
+- The frontend `VerifyPage` reads `?token` and calls `GET /api/cert/verify?token=...` to show VALID/INVALID.
+
+Quick checks
+- Backend email config check: `GET /api/cert/test-email-config`
+- Verify by ID (UI): use the Verify page field
+- Verify by token (URL): open `FRONTEND_ORIGIN/verify?token=...`
+
+## Scripts
+
+- `npm run start:backend` Start API
+- `npm run start:frontend` Start UI
+- `npm run start:all` Run both concurrently
+- `npm run deploy` Deploy contracts to Sepolia
+- `npm run test:sepolia` Connection test
+
+## Troubleshooting
+
+- Emails not arriving: confirm Gmail App Password or SMTP creds; check `/api/cert/test-email-config`.
+- QR opens JSON: ensure `FRONTEND_ORIGIN` is set; reissue cert so email uses the new URL.
+- CORS: keep `FRONTEND_ORIGIN` and `APP_BASE_URL` aligned for local and production.
+
+## License
+
+ISC
